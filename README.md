@@ -1,5 +1,9 @@
 # WedPlan Backend Server — Wedding Planning Platform API
 
+- **Backend Repository:** [https://github.com/jonathanavibis/wedplan-server-a09](https://github.com/jonathanavibis/wedplan-server-a09)
+- **Frontend Repository:** [https://github.com/jonathanavibis/wedplan-a09](https://github.com/jonathanavibis/wedplan-a09)
+- **Live Site Link:** [https://wedplan-a09.vercel.app](https://wedplan-a09.vercel.app)
+
 WedPlan Backend is a role-based RESTful API server built with **Express.js**, **MongoDB**, **Mongoose**, **JWT Authentication**, and **Stripe Checkout**, powering the WedPlan wedding planning platform.
 
 ---
