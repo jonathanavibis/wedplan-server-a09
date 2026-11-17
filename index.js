@@ -11,6 +11,7 @@ const bookingRoutes = require('./routes/bookingRoutes');
 const transactionRoutes = require('./routes/transactionRoutes');
 const userRoutes = require('./routes/userRoutes');
 const uploadRoutes = require('./routes/uploadRoutes');
+const reviewRoutes = require('./routes/reviewRoutes');
 
 const app = express();
 
@@ -82,6 +83,7 @@ app.use('/api/bookings', bookingRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/upload', uploadRoutes);
+app.use('/api/reviews', reviewRoutes);
 
 // 404 Handler for undefined routes
 app.use((req, res, next) => {
