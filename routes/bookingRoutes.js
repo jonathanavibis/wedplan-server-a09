@@ -9,7 +9,13 @@ const {
 } = require('../controllers/bookingController');
 const { verifyToken, requireCustomer, requireVendor } = require('../middleware/auth');
 
-// Customer booking routes
+// Customer & general booking routes
+router.get('/', verifyToken, (req, res, next) => {
+  if (req.user.role === 'Vendor') {
+    return getVendorBookings(req, res, next);
+  }
+  return getCustomerBookings(req, res, next);
+});
 router.post('/', verifyToken, createBooking); // Validates non-admin, non-self booking in controller
 router.get('/customer/my-bookings', verifyToken, requireCustomer, getCustomerBookings);
 router.patch('/:id/cancel', verifyToken, requireCustomer, cancelBooking);
