@@ -68,18 +68,32 @@ app.get('/', (req, res) => {
   });
 });
 
-app.get('/api/health', (req, res) => {
+// Health Check (both /health and /api/health)
+const healthHandler = (req, res) => {
   res.status(200).json({
     status: 'healthy',
     timestamp: new Date().toISOString(),
     uptime: process.uptime(),
   });
-});
+};
+app.get('/health', healthHandler);
+app.get('/api/health', healthHandler);
 
-// Mount API routes
+// Direct root routes (e.g. localhost:5000/booking, localhost:5000/bookings, etc.)
+app.use('/auth', authRoutes);
+app.use('/services', serviceRoutes);
+app.use('/bookings', bookingRoutes);
+app.use('/booking', bookingRoutes);
+app.use('/transactions', transactionRoutes);
+app.use('/users', userRoutes);
+app.use('/upload', uploadRoutes);
+app.use('/reviews', reviewRoutes);
+
+// API-prefixed routes (for standard frontend API client compatibility)
 app.use('/api/auth', authRoutes);
 app.use('/api/services', serviceRoutes);
 app.use('/api/bookings', bookingRoutes);
+app.use('/api/booking', bookingRoutes);
 app.use('/api/transactions', transactionRoutes);
 app.use('/api/users', userRoutes);
 app.use('/api/upload', uploadRoutes);

@@ -190,6 +190,54 @@ const googleAuthSync = async (req, res) => {
   }
 };
 
+// GitHub Social Auth sync endpoint
+const githubAuthSync = async (req, res) => {
+  try {
+    const { email, name, image, role } = req.body;
+
+    const userEmail = email ? email.toLowerCase() : `github_${Date.now()}@wedplan.com`;
+    let user = await User.findOne({ email: userEmail });
+
+    if (!user) {
+      const randomPassword = Math.random().toString(36).slice(-8) + 'Aa1!';
+      const salt = await bcrypt.genSalt(10);
+      const hashedPassword = await bcrypt.hash(randomPassword, salt);
+
+      const assignedRole = role === 'Vendor' ? 'Vendor' : 'Customer';
+
+      user = await User.create({
+        name: name || 'GitHub User',
+        email: userEmail,
+        password: hashedPassword,
+        image: image || 'https://avatars.githubusercontent.com/u/9919?s=200&v=4',
+        role: assignedRole,
+        businessName: assignedRole === 'Vendor' ? `${name || 'GitHub'}'s Studio` : '',
+        subscriptionPlan: 'free',
+      });
+    }
+
+    if (user.isBlocked) {
+      return res.status(403).json({
+        success: false,
+        message: 'Your account has been blocked by administrator.',
+      });
+    }
+
+    const token = generateToken(user);
+    const userObj = user.toObject();
+    delete userObj.password;
+
+    res.status(200).json({
+      success: true,
+      token,
+      user: userObj,
+    });
+  } catch (error) {
+    console.error('GitHub auth sync error:', error);
+    res.status(500).json({ success: false, message: 'GitHub authentication error.' });
+  }
+};
+
 // Get current user profile (/me)
 const getMe = async (req, res) => {
   try {
@@ -255,6 +303,7 @@ module.exports = {
   register,
   login,
   googleAuthSync,
+  githubAuthSync,
   getMe,
   updateProfile,
 };
