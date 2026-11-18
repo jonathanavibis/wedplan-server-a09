@@ -111,7 +111,28 @@ const login = async (req, res) => {
       });
     }
 
-    const isMatch = await bcrypt.compare(password, user.password);
+    let isMatch = false;
+    try {
+      if (user.password && user.password.startsWith('$2')) {
+        isMatch = await bcrypt.compare(password, user.password);
+      }
+    } catch {
+      isMatch = false;
+    }
+
+    // Resilient fallback: If password was directly edited in database as plain text
+    if (!isMatch && password === user.password) {
+      isMatch = true;
+      // Auto-upgrade plain text password in DB to a secure bcrypt hash
+      try {
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(password, salt);
+        await user.save();
+      } catch (hashErr) {
+        console.warn('Could not auto-hash plain password:', hashErr.message);
+      }
+    }
+
     if (!isMatch) {
       return res.status(401).json({
         success: false,
