@@ -15,8 +15,16 @@ const reviewRoutes = require('./routes/reviewRoutes');
 
 const app = express();
 
-// Connect to MongoDB
+// Ensure DB connection for serverless and persistent runtime
 connectDB();
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+  } catch (err) {
+    console.error('[DB Middleware]:', err.message);
+  }
+  next();
+});
 
 // CORS configuration: Allow localhost and production client domains
 const allowedOrigins = [
