@@ -128,8 +128,8 @@ The API server will run at: `http://localhost:5000`
 - `PATCH /api/bookings/:id/status` — Accept or Reject booking (Vendor only)
 
 ### Transactions & Subscriptions
-- `POST /api/transactions/create-checkout-session` — Generate Stripe Checkout Session (Vendor only)
-- `POST /api/transactions/verify-session` — Verify Stripe payment & activate Premium (Vendor only)
+- `POST /api/transactions/create-checkout-session` — Generate Stripe Checkout Session (Vendor Premium & Customer VIP Concierge Pass)
+- `POST /api/transactions/verify-session` — Verify Stripe payment & activate membership (Vendor & Customer)
 - `POST /api/transactions/webhook` — Stripe webhook listener
 - `GET /api/transactions/my-transactions` — Vendor transaction history (Vendor only)
 - `GET /api/transactions/admin/all` — Admin transaction ledger (Admin only)
