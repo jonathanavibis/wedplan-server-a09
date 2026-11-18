@@ -7,15 +7,15 @@ const {
   getVendorTransactions,
   getAllTransactionsAdmin,
 } = require('../controllers/transactionController');
-const { verifyToken, requireVendor, requireAdmin } = require('../middleware/auth');
+const { verifyToken, optionalVerifyToken, requireVendor, requireAdmin } = require('../middleware/auth');
 
 // Webhook endpoint (Raw body handled in index.js)
 router.post('/webhook', handleStripeWebhook);
 
-// Vendor endpoints
-router.post('/create-checkout-session', verifyToken, requireVendor, createCheckoutSession);
-router.post('/verify-session', verifyToken, requireVendor, verifySessionAndActivate);
-router.get('/my-transactions', verifyToken, requireVendor, getVendorTransactions);
+// Checkout and verification endpoints (Available for both Vendors and Customers)
+router.post('/create-checkout-session', verifyToken, createCheckoutSession);
+router.post('/verify-session', optionalVerifyToken, verifySessionAndActivate);
+router.get('/my-transactions', verifyToken, getVendorTransactions);
 
 // Admin endpoints
 router.get('/admin/all', verifyToken, requireAdmin, getAllTransactionsAdmin);

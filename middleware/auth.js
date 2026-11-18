@@ -55,6 +55,32 @@ const verifyToken = async (req, res, next) => {
   }
 };
 
+// Optional token verification (doesn't fail if token missing; allows guest or external callback)
+const optionalVerifyToken = async (req, res, next) => {
+  try {
+    let token = null;
+    if (
+      req.headers.authorization &&
+      req.headers.authorization.startsWith('Bearer ')
+    ) {
+      token = req.headers.authorization.split(' ')[1];
+    } else if (req.cookies && req.cookies.token) {
+      token = req.cookies.token;
+    }
+
+    if (token && token !== 'null' && token !== 'undefined') {
+      const decoded = jwt.verify(token, process.env.JWT_SECRET || 'ndVWCV67Abg5IXq9sUPNDdJeMEGHk18a');
+      const user = await User.findById(decoded.id).select('-password');
+      if (user && !user.isBlocked) {
+        req.user = user;
+      }
+    }
+  } catch (err) {
+    // Ignore invalid/expired token in optional check
+  }
+  next();
+};
+
 // Check if authenticated user is an Admin
 const requireAdmin = (req, res, next) => {
   if (!req.user || req.user.role !== 'Admin') {
@@ -103,6 +129,7 @@ const requireRole = (...roles) => {
 
 module.exports = {
   verifyToken,
+  optionalVerifyToken,
   requireAdmin,
   requireVendor,
   requireCustomer,
