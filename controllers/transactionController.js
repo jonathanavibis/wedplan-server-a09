@@ -15,6 +15,7 @@ const createCheckoutSession = async (req, res) => {
     const userId = user._id;
     const userEmail = user.email;
     const requestedPlan = (req.body?.plan || 'premium').toLowerCase(); // 'premium' or 'vip'
+    const requestedInterval = (req.body?.interval || 'yearly').toLowerCase() === 'monthly' ? 'monthly' : 'yearly';
     const clientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || 'http://localhost:3000';
 
     if (user.role === 'Admin') {
@@ -39,34 +40,33 @@ const createCheckoutSession = async (req, res) => {
 
     if (isVendor) {
       if (requestedPlan === 'vip') {
-        planName = 'WedPlan Vendor VIP Elite Membership';
+        planPrice = requestedInterval === 'monthly' ? 19.0 : 99.0;
+        planName = `WedPlan Vendor VIP Elite Membership (${requestedInterval === 'monthly' ? 'Monthly' : 'Yearly - Best Value'})`;
         planDesc = 'Unlimited service listings, #1 sponsored category ranking, dedicated 24/7 account manager, custom branding banner, and 0% platform booking commission.';
-        planPrice = 99.0;
-        planType = 'vendor_vip';
+        planType = `vendor_vip_${requestedInterval}`;
       } else {
-        planName = 'WedPlan Vendor Premium Membership (Popular)';
+        planPrice = requestedInterval === 'monthly' ? 9.0 : 49.0;
+        planName = `WedPlan Vendor Premium Membership (${requestedInterval === 'monthly' ? 'Monthly' : 'Yearly - Popular'})`;
         planDesc = 'Unlimited active service publishing, priority search placement, verified golden vendor badge, and direct client messaging.';
-        planPrice = 49.0;
-        planType = 'vendor_premium';
+        planType = `vendor_premium_${requestedInterval}`;
       }
     } else {
       // Customer Plans
       if (requestedPlan === 'vip') {
-        planName = 'WedPlan VIP Customer Concierge Pass';
+        planPrice = requestedInterval === 'monthly' ? 12.0 : 79.0;
+        planName = `WedPlan VIP Customer Concierge Pass (${requestedInterval === 'monthly' ? 'Monthly' : 'Yearly - Best Value'})`;
         planDesc = '24/7 dedicated personal wedding concierge, contract & quote review, emergency vendor backup guarantee, and VIP Concierge Gold Badge.';
-        planPrice = 79.0;
-        planType = 'customer_vip';
+        planType = `customer_vip_${requestedInterval}`;
       } else {
-        planName = 'WedPlan Premium Couple Pass (Popular)';
+        planPrice = requestedInterval === 'monthly' ? 5.0 : 29.0;
+        planName = `WedPlan Premium Couple Pass (${requestedInterval === 'monthly' ? 'Monthly' : 'Yearly - Popular'})`;
         planDesc = 'Priority booking queue, personalized wedding budget & milestone planner, verified couple badge, and exclusive vendor discounts.';
-        planPrice = 29.0;
-        planType = 'customer_premium';
+        planType = `customer_premium_${requestedInterval}`;
       }
     }
 
     let session;
     try {
-      // NOTE: Removed deprecated 'payment_method_types' parameter for modern Stripe API
       session = await stripe.checkout.sessions.create({
         line_items: [
           {
@@ -89,8 +89,9 @@ const createCheckoutSession = async (req, res) => {
           vendorId: userId.toString(),
           role: user.role,
           plan: planType,
+          interval: requestedInterval,
         },
-        success_url: `${clientUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}&plan=${planType}`,
+        success_url: `${clientUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}&plan=${planType}&interval=${requestedInterval}`,
         cancel_url: `${clientUrl}/payment/cancel`,
       });
     } catch (stripeErr) {
@@ -98,7 +99,7 @@ const createCheckoutSession = async (req, res) => {
       const mockSessionId = `cs_test_wedplan_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
       session = {
         id: mockSessionId,
-        url: `${clientUrl}/payment/success?session_id=${mockSessionId}&uid=${userId}&plan=${planType}&test_mode=simulated`,
+        url: `${clientUrl}/payment/success?session_id=${mockSessionId}&uid=${userId}&plan=${planType}&interval=${requestedInterval}&test_mode=simulated`,
       };
     }
 
@@ -108,11 +109,13 @@ const createCheckoutSession = async (req, res) => {
       url: session.url,
       plan: planType,
       amount: planPrice,
+      interval: requestedInterval,
     });
   } catch (error) {
     console.error('Create checkout session error:', error);
     res.status(500).json({ success: false, message: error.message });
   }
+};
 };
 
 // POST /api/transactions/verify-session (Server-side verification of Stripe checkout session)
@@ -200,13 +203,21 @@ const verifySessionAndActivate = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Associated user account not found.' });
     }
 
-    // Activate Plan for 1 year
-    const oneYearFromNow = new Date();
-    oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
+    // Calculate expiration based on interval (Monthly or Yearly)
+    const interval =
+      req.body?.interval ||
+      (planType.includes('monthly') ? 'monthly' : 'yearly');
+
+    const expiresAt = new Date();
+    if (interval === 'monthly') {
+      expiresAt.setMonth(expiresAt.getMonth() + 1);
+    } else {
+      expiresAt.setFullYear(expiresAt.getFullYear() + 1);
+    }
 
     const activatedPlan = planType.toLowerCase().includes('vip') ? 'vip' : 'premium';
     targetUser.subscriptionPlan = activatedPlan;
-    targetUser.subscriptionExpiresAt = oneYearFromNow;
+    targetUser.subscriptionExpiresAt = expiresAt;
     await targetUser.save();
 
     // Save transaction record
