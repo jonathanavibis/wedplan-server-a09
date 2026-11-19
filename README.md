@@ -1,142 +1,103 @@
-# WedPlan Backend Server — Wedding Planning Platform API
+# WedPlan — Backend Server API
 
-- **Backend Repository:** [https://github.com/jonathanavibis/wedplan-server-a09](https://github.com/jonathanavibis/wedplan-server-a09)
-- **Frontend Repository:** [https://github.com/jonathanavibis/wedplan-a09](https://github.com/jonathanavibis/wedplan-a09)
-- **Live Site Link:** [https://wedplan-a09.vercel.app](https://wedplan-a09.vercel.app)
-
-WedPlan Backend is a role-based RESTful API server built with **Express.js**, **MongoDB**, **Mongoose**, **JWT Authentication**, and **Stripe Checkout**, powering the WedPlan wedding planning platform.
+**Live Server API:** [https://wedplan-server-a09.vercel.app](https://wedplan-server-a09.vercel.app)  
+**Live Frontend Application:** [https://wedplan-a09.vercel.app](https://wedplan-a09.vercel.app)  
+**Backend Repository:** [https://github.com/jonathanavibis/wedplan-server-a09](https://github.com/jonathanavibis/wedplan-server-a09)  
+**Frontend Repository:** [https://github.com/jonathanavibis/wedplan-a09](https://github.com/jonathanavibis/wedplan-a09)  
 
 ---
 
-## 🌟 Important Features
+## 💍 Overview
 
-- **Role-Based Access Control (RBAC):** Strict server-side verification for `Admin`, `Vendor`, and `Customer` roles.
-- **Service Listings & Catalog Management:**
-  - Public search by name, category, and location with price sorting (asc/desc).
-  - Admin service approval workflow (`Pending` -> `Approved` / `Rejected`).
-  - Free vendor tier limit enforcement: maximum 3 active services.
-  - Premium vendor tier: unlimited active services.
-- **Booking Request Lifecycle:**
-  - Customer booking request submission with duplicate prevention for same service and event date.
-  - Customer self-cancellation for pending bookings.
-  - Vendor acceptance and rejection state-machine (immutable once finalized).
-  - Cross-account protection (vendors cannot book own services; customers cannot alter other users' bookings).
-- **Stripe Checkout & Webhook Integration:**
-  - Automated Stripe Checkout Session generation for Premium vendor upgrades ($49.00 USD).
-  - Secure webhook endpoint (`/api/transactions/webhook`) with raw body signature verification.
-  - Immediate server-side session verification endpoint (`/api/transactions/verify-session`).
-- **User & Platform Governance:**
-  - Admin dashboard analytics: total users, vendors, customers, services, pending approvals, transactions, and gross revenue.
-  - User moderation: instant block / unblock capabilities with token re-check.
-- **Image Upload Integration:**
-  - Integrated ImgBB upload proxy with in-memory buffer handling for service and profile photos.
-- **Security Best Practices:**
-  - Password hashing via `bcryptjs` (salt rounds: 10).
-  - Password strength validation (min 6 characters, uppercase, lowercase).
-  - Strict resource ownership verification before update or deletion.
-  - Non-forgeable JWT authentication tokens.
+The **WedPlan Backend API** is a robust, role-based RESTful service built with **Node.js**, **Express.js**, **MongoDB Atlas**, **Mongoose ODM**, **JWT Authentication**, and **Stripe Payments**. It serves as the business logic, security, and data persistence backbone of the WedPlan wedding planning platform.
+
+---
+
+## ✨ Core Features & Server Architecture
+
+- **Role-Based Access Control (RBAC):** Strict middleware guards verifying `Admin`, `Vendor`, and `Customer` tokens on all private endpoints.
+- **Catalog & Service Lifecycle:**
+  - Public search, category filtering, location queries, and price sorting.
+  - Automated free tier enforcement: vendors on the free plan are limited to 3 active services.
+  - Admin approval workflow: new vendor listings enter a `Pending` state until reviewed.
+- **Booking State Machine:**
+  - Customer booking request submission with date and venue metadata.
+  - Prevention of duplicate bookings for the same service on the same date.
+  - Self-cancellation for pending customer requests.
+  - Vendor acceptance/rejection flow, immutable once finalized.
+  - Ownership protection: vendors cannot book their own services.
+- **Stripe Checkout & Financial Management:**
+  - Dynamic checkout session generation for vendor premium upgrades ($49.00 USD) and customer VIP passes ($29.00 USD).
+  - Secure webhook listener (`/api/transactions/webhook`) verifying raw body Stripe signatures.
+  - Instantaneous session verification (`/api/transactions/verify-session`) with automated session-to-user linking.
+- **User Governance & Moderation:**
+  - Real-time platform KPI statistics aggregation for administrators.
+  - User moderation: instant block and unblock controls with live token revocation.
+- **Password Security & Management:**
+  - Secure bcrypt password hashing with 10 salt rounds.
+  - Dedicated `/api/auth/change-password` endpoint verifying old password before saving new credentials.
 
 ---
 
 ## 🛠️ Technology Stack
 
-- **Runtime:** Node.js (v20+ / v22 / v26)
+- **Runtime:** Node.js
 - **Framework:** Express.js (v5)
 - **Database:** MongoDB Atlas with Mongoose ODM
 - **Authentication:** JSON Web Tokens (`jsonwebtoken`) & `bcryptjs`
-- **Payments:** Stripe SDK (`stripe`)
-- **File & Image Processing:** Multer & Axios (ImgBB API)
+- **Payment Processing:** Stripe Node SDK (`stripe`)
+- **File Uploads:** Multer & Axios (ImgBB Proxy)
 - **Deployment:** Vercel Serverless Functions (`@vercel/node`)
 
 ---
 
-## 🔐 Environment Variables
+## 📡 Core API Endpoints
 
-Create a `.env` file in the root of the server directory:
+### Authentication & Profile (`/api/auth`)
+- `POST /api/auth/register` — Register a new Customer or Vendor account (Admin cannot be created publicly)
+- `POST /api/auth/login` — Authenticate credentials and issue JWT token
+- `POST /api/auth/google` — Synchronize Google OAuth user accounts
+- `POST /api/auth/github` — Synchronize GitHub OAuth user accounts
+- `GET /api/auth/me` — Retrieve authenticated user profile (Protected)
+- `PUT /api/auth/profile` — Update user profile information (Protected)
+- `PUT /api/auth/change-password` — Change password with old password, new password, and confirm password (Protected)
 
-```env
-PORT=5000
-MONGODB_URI=mongodb+srv://<username>:<password>@cluster0.mongodb.net/wedplan?retryWrites=true&w=majority
-JWT_SECRET=your_super_secret_jwt_key
-CLIENT_URL=http://localhost:3000
-FRONTEND_URL=http://localhost:3000
-STRIPE_SECRET_KEY=sk_test_your_stripe_secret_key
-STRIPE_WEBHOOK_SECRET=whsec_your_stripe_webhook_secret
-IMGBB_API_KEY=your_imgbb_api_key
-```
+### Services & Catalog (`/api/services`)
+- `GET /api/services` — Public catalog search with filtering, sorting, and pagination
+- `GET /api/services/featured` — Homepage curated featured services
+- `GET /api/services/:id` — Detailed service package information
+- `GET /api/services/vendor/my-services` — Vendor's own portfolio listings (Vendor only)
+- `POST /api/services` — Publish a new service listing (Vendor only, enforces 3-service free limit)
+- `PUT /api/services/:id` — Update service listing details (Owner only)
+- `DELETE /api/services/:id` — Remove service listing (Owner or Admin)
+- `GET /api/services/admin/all` — Full catalog review queue (Admin only)
+- `PATCH /api/services/admin/:id/status` — Approve or reject service submission (Admin only)
 
----
+### Bookings (`/api/bookings`)
+- `POST /api/bookings` — Submit wedding service booking request (Customer only)
+- `GET /api/bookings/customer/my-bookings` — View customer's booking itinerary (Customer only)
+- `PATCH /api/bookings/:id/cancel` — Cancel pending booking request (Customer only)
+- `GET /api/bookings/vendor/requests` — View incoming booking requests (Vendor only)
+- `PATCH /api/bookings/:id/status` — Accept or reject customer request (Vendor only)
 
-## 🚀 Installation & Local Execution
-
-### 1. Install Dependencies
-```bash
-npm install
-```
-
-### 2. Seed Database
-Seeds default Admin, Vendors, Customer, 8+ approved wedding services across all categories, bookings, and transactions:
-```bash
-npm run seed
-```
-
-### 3. Run Development Server
-```bash
-npm run dev
-```
-
-The API server will run at: `http://localhost:5000`
-
----
-
-## 🔑 Default Evaluation Credentials
-
-| Role | Email | Password |
-|---|---|---|
-| **Admin** | `admin@wedplan.com` | `Admin@123456` |
-| **Vendor** | `vendor@wedplan.com` | `Vendor@123456` |
-| **Customer** | `customer@wedplan.com` | `Customer@123456` |
-
----
-
-## 📡 API Endpoints Overview
-
-### Auth
-- `POST /api/auth/register` — Register customer or vendor (Admin cannot be created publicly)
-- `POST /api/auth/login` — Sign in with credentials and receive JWT
-- `POST /api/auth/google` — Social authentication sync
-- `GET /api/auth/me` — Get current user profile (Protected)
-- `PUT /api/auth/profile` — Update profile details (Protected)
-
-### Services
-- `GET /api/services` — Public catalog (search, filter, sort, paginate)
-- `GET /api/services/featured` — Homepage featured services
-- `GET /api/services/:id` — Service details
-- `GET /api/services/vendor/my-services` — Vendor's own listings (Vendor only)
-- `POST /api/services` — Create service with 3-service free tier limit (Vendor only)
-- `PUT /api/services/:id` — Update service listing (Owner only)
-- `DELETE /api/services/:id` — Delete service listing (Owner or Admin)
-- `GET /api/services/admin/all` — View all services for review (Admin only)
-- `PATCH /api/services/admin/:id/status` — Approve/Reject service (Admin only)
-
-### Bookings
-- `POST /api/bookings` — Submit booking request (Customer only)
-- `GET /api/bookings/customer/my-bookings` — Customer bookings (Customer only)
-- `PATCH /api/bookings/:id/cancel` — Cancel pending booking (Customer only)
-- `GET /api/bookings/vendor/requests` — View booking requests (Vendor only)
-- `PATCH /api/bookings/:id/status` — Accept or Reject booking (Vendor only)
-
-### Transactions & Subscriptions
-- `POST /api/transactions/create-checkout-session` — Generate Stripe Checkout Session (Vendor Premium & Customer VIP Concierge Pass)
-- `POST /api/transactions/verify-session` — Verify Stripe payment & activate membership (Vendor & Customer)
-- `POST /api/transactions/webhook` — Stripe webhook listener
+### Transactions & Subscriptions (`/api/transactions`)
+- `POST /api/transactions/create-checkout-session` — Generate Stripe Checkout Session (Vendor & Customer)
+- `POST /api/transactions/verify-session` — Verify Stripe checkout session and activate plan
+- `POST /api/transactions/webhook` — Stripe webhook receiver for asynchronous payment completion
 - `GET /api/transactions/my-transactions` — Vendor transaction history (Vendor only)
-- `GET /api/transactions/admin/all` — Admin transaction ledger (Admin only)
+- `GET /api/transactions/admin/all` — Platform-wide financial ledger (Admin only)
 
-### Users & Administration
-- `GET /api/users/admin/all` — User list with role filters & search (Admin only)
-- `PATCH /api/users/admin/:id/toggle-block` — Block / unblock user (Admin only)
-- `GET /api/users/admin/stats` — Platform KPI statistics (Admin only)
+### Administration (`/api/users`)
+- `GET /api/users/admin/all` — Paginated user directory with search and role filters (Admin only)
+- `PATCH /api/users/admin/:id/toggle-block` — Block or unblock a user account (Admin only)
+- `GET /api/users/admin/stats` — Real-time platform KPI statistics (Admin only)
 
-### Uploads
-- `POST /api/upload` — Upload images to ImgBB (Protected)
+---
+
+## 🔑 Test & Evaluation Credentials
+
+| Role | Email | Password | Access / Scope |
+|---|---|---|---|
+| **Admin** | `admin@wedplan.com` | `Admin@123456` | Full platform control, service reviews, user moderation, financial ledger |
+| **Vendor** | `vendor@wedplan.com` | `Vendor@123456` | Service management, booking requests, 3-service free limit, Stripe upgrade |
+| **Customer** | `customer@wedplan.com` | `Customer@123456` | Package browsing, booking submissions, booking cancellation, VIP Concierge |
