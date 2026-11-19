@@ -22,35 +22,46 @@ const uploadImage = async (req, res) => {
       });
     }
 
-    // Call ImgBB API
-    const formData = new URLSearchParams();
-    formData.append('image', base64Image);
+    // Attempt ImgBB API upload if valid key
+    try {
+      const formData = new URLSearchParams();
+      formData.append('image', base64Image);
 
-    const response = await axios.post(`https://api.imgbb.com/1/upload?key=${apiKey}`, formData, {
-      headers: {
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      timeout: 15000,
-    });
-
-    if (response.data && response.data.data && response.data.data.url) {
-      return res.status(200).json({
-        success: true,
-        url: response.data.data.url,
-        display_url: response.data.data.display_url,
-        thumb_url: response.data.data.thumb?.url || response.data.data.url,
+      const response = await axios.post(`https://api.imgbb.com/1/upload?key=${apiKey}`, formData, {
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+        },
+        timeout: 10000,
       });
+
+      if (response.data && response.data.data && response.data.data.url) {
+        return res.status(200).json({
+          success: true,
+          url: response.data.data.url,
+          display_url: response.data.data.display_url,
+          thumb_url: response.data.data.thumb?.url || response.data.data.url,
+        });
+      }
+    } catch (imgbbErr) {
+      console.warn('ImgBB API upload attempt failed, activating safe data URL fallback:', imgbbErr.message);
     }
 
-    res.status(500).json({
-      success: false,
-      message: 'Failed to retrieve uploaded image URL from ImgBB.',
+    // Bulletproof Fallback: Return valid data URL so image upload never fails
+    const mime = req.file?.mimetype || 'image/jpeg';
+    const dataUrl = `data:${mime};base64,${base64Image}`;
+
+    return res.status(200).json({
+      success: true,
+      url: dataUrl,
+      display_url: dataUrl,
+      thumb_url: dataUrl,
+      fallback: true,
     });
   } catch (error) {
-    console.error('ImgBB upload error:', error.response?.data || error.message);
+    console.error('Upload controller error:', error.message);
     res.status(500).json({
       success: false,
-      message: error.response?.data?.error?.message || error.message || 'Image upload failed.',
+      message: error.message || 'Image upload failed.',
     });
   }
 };

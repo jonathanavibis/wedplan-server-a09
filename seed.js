@@ -192,7 +192,9 @@ const seedData = async () => {
         price: 6400,
         location: 'Catskills, NY',
         images: [
-          'https://images.unsplash.com/photo-1519225424564-9d554a93f18e?auto=format&fit=crop&w=1200&q=80',
+          'https://images.unsplash.com/photo-1511285560929-80b456fea0bc?auto=format&fit=crop&w=1200&q=80',
+          'https://images.unsplash.com/photo-1520854221256-17451cc331bf?auto=format&fit=crop&w=1200&q=80',
+          'https://images.unsplash.com/photo-1583939003579-730e3918a45a?auto=format&fit=crop&w=1200&q=80',
         ],
         status: 'Pending',
         isActive: true,
