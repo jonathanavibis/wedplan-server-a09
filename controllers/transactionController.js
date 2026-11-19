@@ -116,7 +116,6 @@ const createCheckoutSession = async (req, res) => {
     res.status(500).json({ success: false, message: error.message });
   }
 };
-};
 
 // POST /api/transactions/verify-session (Server-side verification of Stripe checkout session)
 const verifySessionAndActivate = async (req, res) => {
