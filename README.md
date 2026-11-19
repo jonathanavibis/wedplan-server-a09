@@ -93,9 +93,9 @@ The API server will run at: `http://localhost:5000`
 
 | Role | Email | Password |
 |---|---|---|
-| **Admin** | `admin@wedplan.com` | `wpadmin123` (or `Admin@123456`) |
-| **Vendor** | `vendor@wedplan.com` | `wpvendor123` (or `Vendor@123456`) |
-| **Customer** | `customer@wedplan.com` | `wpcustomer123` (or `Customer@123456`) |
+| **Admin** | `admin@wedplan.com` | `Admin@123456` |
+| **Vendor** | `vendor@wedplan.com` | `Vendor@123456` |
+| **Customer** | `customer@wedplan.com` | `Customer@123456` |
 
 ---
 
