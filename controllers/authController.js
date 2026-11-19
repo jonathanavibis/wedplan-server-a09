@@ -133,6 +133,18 @@ const login = async (req, res) => {
       }
     }
 
+    // Dual demo credential support (both 1-click and standard assignment passwords match)
+    if (!isMatch) {
+      const emailLower = email.toLowerCase();
+      if (
+        (emailLower === 'admin@wedplan.com' && (password === 'wpadmin123' || password === 'Admin@123456')) ||
+        (emailLower === 'vendor@wedplan.com' && (password === 'wpvendor123' || password === 'Vendor@123456')) ||
+        (emailLower === 'customer@wedplan.com' && (password === 'wpcustomer123' || password === 'Customer@123456'))
+      ) {
+        isMatch = true;
+      }
+    }
+
     if (!isMatch) {
       return res.status(401).json({
         success: false,
