@@ -14,6 +14,7 @@ const createCheckoutSession = async (req, res) => {
     const user = req.user;
     const userId = user._id;
     const userEmail = user.email;
+    const requestedPlan = (req.body?.plan || 'premium').toLowerCase(); // 'premium' or 'vip'
     const clientUrl = process.env.CLIENT_URL || process.env.FRONTEND_URL || 'http://localhost:3000';
 
     if (user.role === 'Admin') {
@@ -23,22 +24,45 @@ const createCheckoutSession = async (req, res) => {
       });
     }
 
-    if (user.subscriptionPlan === 'premium') {
+    if (user.subscriptionPlan === requestedPlan) {
       return res.status(400).json({
         success: false,
-        message: 'You already have an active Premium Membership!',
+        message: `You already have an active ${requestedPlan.toUpperCase()} Membership!`,
       });
     }
 
     const isVendor = user.role === 'Vendor';
-    const planName = isVendor
-      ? 'WedPlan Vendor Premium Membership'
-      : 'WedPlan VIP Customer Concierge & Support Pass';
-    const planDesc = isVendor
-      ? 'Unlimited service publishing, priority search placement, and verified vendor badge.'
-      : 'Dedicated 24/7 wedding concierge, priority vendor bookings, custom budget planner, and VIP couple badge.';
-    const planPrice = isVendor ? VENDOR_PREMIUM_PRICE_USD : CUSTOMER_VIP_PRICE_USD;
-    const planType = isVendor ? 'vendor_premium' : 'customer_vip';
+    let planName = '';
+    let planDesc = '';
+    let planPrice = 49.0;
+    let planType = requestedPlan;
+
+    if (isVendor) {
+      if (requestedPlan === 'vip') {
+        planName = 'WedPlan Vendor VIP Elite Membership';
+        planDesc = 'Unlimited service listings, #1 sponsored category ranking, dedicated 24/7 account manager, custom branding banner, and 0% platform booking commission.';
+        planPrice = 99.0;
+        planType = 'vendor_vip';
+      } else {
+        planName = 'WedPlan Vendor Premium Membership (Popular)';
+        planDesc = 'Unlimited active service publishing, priority search placement, verified golden vendor badge, and direct client messaging.';
+        planPrice = 49.0;
+        planType = 'vendor_premium';
+      }
+    } else {
+      // Customer Plans
+      if (requestedPlan === 'vip') {
+        planName = 'WedPlan VIP Customer Concierge Pass';
+        planDesc = '24/7 dedicated personal wedding concierge, contract & quote review, emergency vendor backup guarantee, and VIP Concierge Gold Badge.';
+        planPrice = 79.0;
+        planType = 'customer_vip';
+      } else {
+        planName = 'WedPlan Premium Couple Pass (Popular)';
+        planDesc = 'Priority booking queue, personalized wedding budget & milestone planner, verified couple badge, and exclusive vendor discounts.';
+        planPrice = 29.0;
+        planType = 'customer_premium';
+      }
+    }
 
     let session;
     try {
@@ -66,7 +90,7 @@ const createCheckoutSession = async (req, res) => {
           role: user.role,
           plan: planType,
         },
-        success_url: `${clientUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+        success_url: `${clientUrl}/payment/success?session_id={CHECKOUT_SESSION_ID}&plan=${planType}`,
         cancel_url: `${clientUrl}/payment/cancel`,
       });
     } catch (stripeErr) {
@@ -176,11 +200,12 @@ const verifySessionAndActivate = async (req, res) => {
       return res.status(404).json({ success: false, message: 'Associated user account not found.' });
     }
 
-    // Activate Premium for 1 year
+    // Activate Plan for 1 year
     const oneYearFromNow = new Date();
     oneYearFromNow.setFullYear(oneYearFromNow.getFullYear() + 1);
 
-    targetUser.subscriptionPlan = 'premium';
+    const activatedPlan = planType.toLowerCase().includes('vip') ? 'vip' : 'premium';
+    targetUser.subscriptionPlan = activatedPlan;
     targetUser.subscriptionExpiresAt = oneYearFromNow;
     await targetUser.save();
 

@@ -151,11 +151,11 @@ const createService = async (req, res) => {
       });
     }
 
-    // Check Free Plan limitation: max 3 active services
+    // Check Basic Starter limitation: max 3 active services (Premium and VIP have unlimited)
     const user = await User.findById(req.user._id);
-    const isPremium = user.subscriptionPlan === 'premium';
+    const hasUnlimited = user.subscriptionPlan === 'premium' || user.subscriptionPlan === 'vip';
 
-    if (!isPremium) {
+    if (!hasUnlimited) {
       const activeCount = await Service.countDocuments({
         vendorId: req.user._id,
         isActive: true,
@@ -164,7 +164,7 @@ const createService = async (req, res) => {
       if (activeCount >= 3) {
         return res.status(403).json({
           success: false,
-          message: 'Free plan limit reached (maximum 3 active services). Please upgrade to Premium for unlimited service publishing.',
+          message: 'Basic Starter limit reached (maximum 3 active services). Please upgrade to Premium or VIP for unlimited service publishing.',
           code: 'SUBSCRIPTION_LIMIT_REACHED',
         });
       }

@@ -39,8 +39,8 @@ const userSchema = new mongoose.Schema(
     },
     subscriptionPlan: {
       type: String,
-      enum: ['free', 'premium'],
-      default: 'free',
+      enum: ['free', 'starter', 'premium', 'vip'],
+      default: 'starter',
     },
     subscriptionExpiresAt: {
       type: Date,
