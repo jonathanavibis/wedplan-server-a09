@@ -25,12 +25,7 @@ const createCheckoutSession = async (req, res) => {
       });
     }
 
-    if (user.subscriptionPlan === requestedPlan) {
-      return res.status(400).json({
-        success: false,
-        message: `You already have an active ${requestedPlan.toUpperCase()} Membership!`,
-      });
-    }
+    // Seamlessly allow renewals, tier upgrades, and billing interval switches (monthly <-> yearly)
 
     const isVendor = user.role === 'Vendor';
     let planName = '';

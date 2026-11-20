@@ -109,6 +109,14 @@ const getAdminStats = async (req, res) => {
         totalTransactions,
         totalRevenue,
       },
+      totalUsers,
+      totalVendors,
+      totalCustomers,
+      totalServices,
+      pendingServices,
+      approvedServices,
+      totalTransactions,
+      totalRevenue,
     });
   } catch (error) {
     console.error('Get admin stats error:', error);
